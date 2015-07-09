@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw, PngImagePlugin
 import math
 
 BORDER_MM = 0.5
-PPI = 1000
+PPI = 2000
 STEP = 1
 
 print("\nGerber2PNG.py ver. 20 may 2015\n")
@@ -196,7 +196,6 @@ class GerberData:
 		s = s[0: 3] + "." + s[3:]
 		return float(s)
 
-
 	def parse_value(self, s):
 		negative = False
 		# strip minus signs
@@ -273,26 +272,18 @@ class GerberData:
 #		if not clockwise:
 		if start_angle > end_angle:
 			end_angle += DOUBLE_PI
-
-		
+	
 		print("Circle at: [", centerx, ", ", centery, "] Radius:", radius)
-		print("start Angle: ", start_angle, math.degrees(start_angle))
-		print("end Angle: ", end_angle, math.degrees(end_angle))
-		
-
+#		print("start Angle: ", start_angle, math.degrees(start_angle))
+#		print("end Angle: ", end_angle, math.degrees(end_angle))
 
 		# The parametric equation for a circle is
 		# x = cx + r * cos(a) 
 		# y = cy + r * sin(a) 
 		# Where r is the radius, cx,cy the origin, and a the angle from 0..2PI radians or 0..360 degrees.
-
-
 		if line.endswith("D01*"): # move with shutter OPEN
 			# make a path from lastPoint to x,y
-			#angle = DOUBLE_PI
 			angle = start_angle
-#			if angle == 0: 
-#				angle = DOUBLE_PI
 			while angle < end_angle:
 				xx = int( round(centerx + radius * math.cos(-angle)))
 				yy = int( round(centery + radius * math.sin(-angle)))
@@ -339,8 +330,6 @@ class GerberData:
 		elif line.startswith("G02"): #clockwise arc
 			self.draw_arc(line, True)
 		elif line.startswith("G03"): #counter clockwise arc
-#			self.arc_count += 1
-#			if self.arc_count == 4: # or self.arc_count == 2:
 			self.draw_arc(line, False)
 		else:
 			print("Ignoring line:",line)
