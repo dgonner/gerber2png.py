@@ -9,7 +9,7 @@ BORDER_MM = 0.5
 PPI = 2000
 STEP = 1
 
-print("\nGerber2PNG.py ver. 20 may 2015\n")
+print("\nGerber2PNG.py ver. 2 may 2016\n")
 
 current_dir = os.getcwd()
 
@@ -27,8 +27,10 @@ prefix = project_name
 
 gerberfiles = []
 gerberfiles.append( prefix + "-Edge_Cuts.gbr" )
+gerberfiles.append( prefix + "-Edge.Cuts.gbr" )
 gerberfiles.append( prefix + "-B_Cu.gbl" )
-gerberfiles.append( prefix + "-F_Cu.gtl" )
+gerberfiles.append( prefix + "-B.Cu.gbr" )
+#gerberfiles.append( prefix + "-F_Cu.gtl" )
 gerberfiles = list(filter(lambda f: os.path.isfile(f), gerberfiles))
 
 drillfiles = []
@@ -43,6 +45,13 @@ for drillfile in drillfiles:
 	print("DRILL FOUND:",drillfile)
 
 print()
+
+dataformat = {}
+dataformat["format_leading_zeroes"] = False
+dataformat["format_trailing_zeroes"] = False
+dataformat["format_absolute"] = False
+dataformat["format_incremental"] = False
+
 
 
 #===================================================================================
@@ -173,13 +182,28 @@ class GerberData:
 		while len(mods) > 0:
 			xpos = mods.find("X")
 			if xpos != -1:
-				modifiers.append( float( mods[0:xpos] ))
+				value = float( mods[0:xpos] )
+				if self.scale == 1:
+					value = value / 25.4
+
+#				modifiers.append( float( mods[0:xpos] ))
+				modifiers.append(value)
 				mods = mods[xpos+1:]
 			else:
-				modifiers.append( float( mods ))
+				value = float( mods )
+				if self.scale == 1:
+					value = value / 25.4
+				
+#				modifiers.append( float( mods ))
+				modifiers.append(value)
 				mods = ""
 
 		print("Aperture definition",n,type,modifiers) 		
+
+		if self.scale == 1:
+			value = value / 25.4
+
+
 		self.apertures[n] = Aperture(type, modifiers, self.ppi)
 
 	def select_aperture(self, line):
@@ -188,13 +212,14 @@ class GerberData:
 		print("Selecting aperture",n)
 		self.aperture = self.apertures[n]
 
-	def format_number(self,s):
-		# add leading zeroes
-		while len(s) < 7:
-			s = "0"+s
-		# add decimal point
-		s = s[0: 3] + "." + s[3:]
-		return float(s)
+
+	# def format_number(self,s):
+	# 	# add leading zeroes
+	# 	while len(s) < 7:
+	# 		s = "0"+s
+	# 	# add decimal point
+	# 	s = s[0: 3] + "." + s[3:]
+	# 	return float(s)
 
 	def parse_value(self, s):
 		negative = False
@@ -202,15 +227,43 @@ class GerberData:
 		if s.startswith("-"):
 			s = s[1:]
 			negative = True
-		# add leading zeroes
-		while len(s) < 7:
-			s = "0"+s
-		# add decimal point
-		s = s[0: 3] + "." + s[3:]
+		# strip optional plus sign	
+		if s.startswith("+"):
+			s = s[1:]
+
+		coordslength = dataformat["format_integer_positions"] + dataformat["format_decimal_positions"]
+
+		if dataformat["format_leading_zeroes"]:
+			# add leading zeroes
+			while len(s) < coordslength:
+				s = "0"+s
+
+		if dataformat["format_trailing_zeroes"]:
+			# add trailing zeroes
+			while len(s) < coordslength:
+				s = s+"0"
+
+		if len(s) != coordslength:
+			print("wrong coordinate length: "+str(len(s)))	
+			exit()
+
+		int_len = dataformat["format_integer_positions"]
+		dec_len = dataformat["format_decimal_positions"] 
+
+		# add decimal point in correct place
+#		s = s[0: 3] + "." + s[3:]
+		s = s[0: int_len] + "." + s[int_len:]
+
+#		print("scale:"+str(self.scale))
+		value = float(s)
+		if self.scale == 1:
+			value = value / 25.4
 				
-		i = int( round( float(s) * self.ppi))
+#		i = int( round( float(s) * self.ppi))
+		i = int( round( value * self.ppi))
 		if negative:
 			i = i*-1
+#		print("result:"+str(i))
 		return i
 	
 	def draw(self, line):
@@ -220,8 +273,11 @@ class GerberData:
 		xstr = line[xpos+1: ypos]
 		ystr = line[ypos+1: dpos]
 
-		x = int(round( self.format_number(xstr) * self.ppi ))
-		y = int(round( self.format_number(ystr) * self.ppi ))
+		#x = int(round( self.format_number(xstr) * self.ppi ))
+		#y = int(round( self.format_number(ystr) * self.ppi ))
+		x = self.parse_value(xstr)
+		y = self.parse_value(ystr)
+
 
 		# move with shutter OPEN
 		if line.endswith("D01*"):
@@ -303,17 +359,49 @@ class GerberData:
 		elif line.startswith("%MOMM*%"):
 			print("Dimensions in Millimeters")
 			self.scale = 1;
-		elif line.startswith("%FS"):
+		elif line.startswith("%FS") and line.endswith("*%"):
 #			print("File is in the correct format")
-			if not line == "%FSLAX34Y34*%":
-				print("wrong format definition! STOPPING...")
+			print("Format specification:")
+			xpos = line.find("X")
+#			ypos = line.find("Y")
+			format_integer_positions = int(line[xpos+1])
+			format_decimal_positions = int(line[xpos+2])
+			print("\tFmt:"+str(format_integer_positions)+"."+str(format_decimal_positions))
+
+			dataformat["format_integer_positions"] = format_integer_positions
+			dataformat["format_decimal_positions"] = format_decimal_positions
+
+			if "L" in line:
+				print("\tOmit leading zeroes")
+				#format_leading_zeroes = True
+				dataformat["format_leading_zeroes"] = True
+			if "T" in line:
+				print("\tOmit trailing zeroes")
+				#format_trailing_zeroes = True
+				dataformat["format_trailing_zeroes"] = True
+			if "A" in line:
+				print("\tAbsolute notation")
+				#format_absolute = True
+				dataformat["format_absolute"] = True
+			if "I" in line:
+				print("\tIncremental notation")
+				#format_incremental = True
+				dataformat["format_incremental"] = True
+
+			if dataformat["format_incremental"]:	
+#			if not line == "%FSLAX34Y34*%":
+				print("\tWrong format definition! STOPPING...")
 				exit()
 		elif line.startswith("%AD"):
 			#print("got aperture definition!")
 			self.add_aperture(line)
-		elif line.startswith("G54"):
+		
+		elif line.startswith("G54"):	# old deprecated way of selecting an aperture
 			#print("Select aperture")
 			self.select_aperture(line)
+		elif line.startswith("D"):	# new way of selecting an aperture
+			self.select_aperture("G54"+line)
+
 		elif line.startswith("M02"):
 			print("STOP")
 			#return true;
