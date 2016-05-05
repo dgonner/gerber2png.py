@@ -602,12 +602,17 @@ dimensions = get_max_dimensions(edge_primitives)
 trace_primitives = process_gerber(gerberfiles[1], PPI, STEP)
 drill_primitives = process_drill(drillfiles[0], PPI)
 
+#print('\nBoard: {:.2f} x {:.2f} mm'.format(width, height))
+print('Border: {:.2f} mm'.format(BORDER_MM))
+border_pixels = int(round(BORDER_MM/25.4*PPI))
+print('Image:', dimensions[0]+border_pixels*2, 'x', dimensions[1]+border_pixels*2, '@', PPI, 'ppi\n')
+
 traces = []
 traces.extend(trace_primitives)
 traces.extend(drill_primitives)
-create_image(prefix+"_MILL-TRACES.png", dimensions, PPI, BORDER_MM, traces)
+#create_image(prefix+"_MILL-TRACES.png", dimensions, PPI, BORDER_MM, traces)
 
 cutouts = []
 cutouts.extend(edge_primitives)
 cutouts.extend(drill_primitives)
-create_image(prefix+"_MILL-CUTOUT.png", dimensions, PPI, BORDER_MM, cutouts, True)
+#create_image(prefix+"_MILL-CUTOUT.png", dimensions, PPI, BORDER_MM, cutouts, True)
