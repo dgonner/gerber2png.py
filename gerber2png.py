@@ -610,9 +610,9 @@ print('Image:', dimensions[0]+border_pixels*2, 'x', dimensions[1]+border_pixels*
 traces = []
 traces.extend(trace_primitives)
 traces.extend(drill_primitives)
-#create_image(prefix+"_MILL-TRACES.png", dimensions, PPI, BORDER_MM, traces)
+create_image(prefix+"_MILL-TRACES.png", dimensions, PPI, BORDER_MM, traces)
 
 cutouts = []
 cutouts.extend(edge_primitives)
 cutouts.extend(drill_primitives)
-#create_image(prefix+"_MILL-CUTOUT.png", dimensions, PPI, BORDER_MM, cutouts, True)
+create_image(prefix+"_MILL-CUTOUT.png", dimensions, PPI, BORDER_MM, cutouts, True)
