@@ -538,14 +538,14 @@ def get_max_dimensions(primitives):
 	highY = 0;
 
 	for p in primitives:
-		if type(p) == Circle:
+		if isinstance(p, Circle):
 			xmax = p.x+p.diameter
 			if xmax > highX:
 				highX = xmax
 			ymax = p.y+p.diameter
 			if ymax > highY:
 				highY = ymax
-		elif type(p) == Rect:
+		elif isinstance(p, Rect):
 			xmax = p.x+p.width
 			if xmax > highX:
 				highX = xmax
@@ -575,7 +575,7 @@ def create_image(filename, dimensions, ppi, border_mm, primitives, inverted=Fals
 	print("Generating image...")
 
 	for p in primitives:
-		if type(p) == Circle:
+		if isinstance(p, Circle):
 			x = p.x + border_pixels
 			y = p.y + border_pixels
 			if p.inverted or inverted:
@@ -583,7 +583,7 @@ def create_image(filename, dimensions, ppi, border_mm, primitives, inverted=Fals
 			else: 
 				fill = white
 			draw.ellipse( [ x, y, x+p.diameter, y+p.diameter], fill)
-		elif type(p) == Rect:
+		elif isinstance(p, Rect):
 			x = p.x + border_pixels
 			y = p.y + border_pixels
 			draw.rectangle( [x, y, x+p.width, y+p.height], fill)
